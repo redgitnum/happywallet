@@ -3,18 +3,30 @@
     view="hHh Lpr lff"
     container
     style="height: 100vh"
-    class="shadow-2 rounded-borders bg-lines"
+    class="rounded-borders bg-lines"
   >
-    <q-header elevated class="bg-black">
+    <q-header class="bg-black">
       <q-toolbar>
-        <q-toolbar-title class="text-center text-h4">
+        <q-toolbar-title class="text-center text-h5">
           HappyWallet
         </q-toolbar-title>
       </q-toolbar>
       <div class="flex justify-center content-stretch">
-        <q-tabs class="col" align="justify" style="maxWidth:1000px">
-          <q-route-tab label="deals" icon="local_offer" to="/deals" exact />
-          <q-route-tab label="search" icon="search" to="/search" exact />
+        <q-tabs class="col" dense align="justify" style="maxWidth:600px;">
+          <q-route-tab
+            style="width:300px"
+            label="deals"
+            icon="local_offer"
+            to="/deals"
+            exact
+          />
+          <q-route-tab
+            style="width:300px"
+            label="how it works"
+            icon="help_outline"
+            to="/"
+            exact
+          />
         </q-tabs>
       </div>
     </q-header>
@@ -49,6 +61,10 @@ export default {
 }
 .fade-leave-active {
   animation: fade-in 200ms reverse;
+}
+.main-container {
+  max-width: 1200px;
+  margin: 0 auto;
 }
 @keyframes fade-in {
   0% {

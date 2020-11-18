@@ -1,5 +1,5 @@
 <template>
-  <q-page class="q-pa-md">
+  <q-page class="q-pa-none">
     <q-drawer
       v-model="leftDrawerOpen"
       overlay
@@ -7,110 +7,43 @@
       bordered
       content-class="bg-grey-2"
     >
-      <div class="flex">
-        <q-item-label header class="text-h5 filter-title">Filters</q-item-label>
-        <q-btn
-          @click="checkFilters"
-          color="positive"
-          class="q-px-md q-mx-md col self-center"
-        >
-          Apply
-        </q-btn>
-      </div>
-      <q-list bordered padding>
-        <q-item dense class="flex">
-          <q-input v-model="filters.title" label="Title" />
-          <q-checkbox
-            class="self-end q-pr-sm text-no-wrap"
-            v-model="filters.exactMatch"
-            label="exact match"
-          />
-        </q-item>
-        <q-separator spaced />
-        <q-item-label header>Price range</q-item-label>
-        <q-item>
-          <q-range
-            v-model="filters.price"
-            :min="0"
-            :max="50"
-            label-always
-            :left-label-value="'$' + filters.price.min"
-            :right-label-value="filterPrice"
-          />
-        </q-item>
-        <q-separator spaced />
-        <q-item-label header>Steam rating</q-item-label>
-        <q-item>
-          <q-slider
-            v-model="filters.rating"
-            :min="40"
-            :max="95"
-            :step="5"
-            label
-            label-always
-            :label-value="ratingValue"
-            color="light-green"
-          />
-        </q-item>
-        <q-separator spaced />
-        <q-item-label header>Other</q-item-label>
-        <q-item>
-          <q-checkbox
-            class="self-end q-pr-sm text-no-wrap"
-            v-model="filters.aaaOnly"
-            label="AAA only"
-          />
-          <q-btn flat round color="dark" icon="help_outline">
-            <q-tooltip>
-              Filters out games with current retails price &lt;$29
-            </q-tooltip>
-          </q-btn>
-        </q-item>
-        <q-item>
-          <q-checkbox
-            class="self-end q-pr-sm text-no-wrap"
-            v-model="filters.steamworks"
-            label="Steamworks"
-          />
-          <q-btn flat round color="dark" icon="help_outline">
-            <q-tooltip>
-              Steamworks games register and download on Steam no matter which
-              store you buy the game from
-            </q-tooltip>
-          </q-btn>
-        </q-item>
-        <q-item>
-          <q-checkbox
-            class="self-end q-pr-sm text-no-wrap"
-            v-model="filters.onSale"
-            label="On sale"
-          />
-        </q-item>
-      </q-list>
+      <left-filters-menu
+        :filters="filters"
+        :filterPrice="filterPrice"
+        :ratingValue="ratingValue"
+        :checkFilters="checkFilters"
+      />
     </q-drawer>
-
+    <dialog-window :card="card" :getHeaderImage="getHeaderImage" />
     <q-table
       class="table-class"
       title="Treats"
       :data="data"
       :columns="columns"
+      :visible-columns="[
+        'price',
+        $q.screen.lt.sm ? null : 'store',
+        $q.screen.lt.md ? null : 'release',
+        'metacritic'
+      ]"
       :loading="loading"
       row-key="index"
       virtual-scroll
       :virtual-scroll-item-size="48"
       :virtual-scroll-sticky-size-start="48"
-      :pagination="pagination"
       :rows-per-page-options="[0]"
       @virtual-scroll="onScroll"
+      dense
     >
       <template v-slot:top>
         <q-btn
           v-if="$q.platform.is.mobile || $q.screen.lt.sm"
           @click="leftDrawerOpen = !leftDrawerOpen"
-          round
+          rounded
           color="primary"
           icon="settings"
           size="md"
+          label="Filters"
         />
         <div class="col" v-if="$q.screen.gt.xs">
           <q-expansion-item
@@ -183,7 +116,7 @@
           </q-expansion-item>
           <transition name="fade">
             <div
-              class="absolute-top q-py-md row no-wrap"
+              class="absolute-top q-py-sm row no-wrap"
               style="left: 150px; right: 100px;"
               v-if="filtersVisible"
             >
@@ -211,14 +144,99 @@
           </transition>
         </div>
       </template>
+      <template v-slot:body="props">
+        <q-tr
+          :props="props"
+          @click="
+            card.visible = true;
+            card.data = props.row;
+          "
+          class="cursor-pointer"
+        >
+          <q-td
+            key="title"
+            :props="props"
+            style=""
+            class="ellipsis"
+            :class="{ 'full-width': $q.screen.lt.sm }"
+          >
+            <q-img
+              :src="props.row.thumb"
+              style="height: 45px; max-width: 120px"
+              :ratio="120 / 45"
+              class="q-mr-xs"
+              spinner-color="primary"
+            />
+            <span
+              class="text-body2 "
+              :class="{ 'custom-wrap': $q.screen.lt.sm }"
+            >
+              {{ props.row.title }}
+            </span>
+          </q-td>
+          <q-td key="price" :props="props">
+            <div class="row justify-end no-wrap">
+              <div>
+                <div>
+                  <q-badge color="grey-7" outline class="text-strike">
+                    ${{ props.row.normalPrice }}
+                  </q-badge>
+                </div>
+                <q-badge color="purple" class="text-bold text-body2">
+                  ${{ props.row.salePrice }}
+                </q-badge>
+              </div>
+              <q-badge
+                class="text-bold text-body2 bg-light-green-9"
+                :class="{
+                  'bg-deep-orange-10': parseInt(props.row.savings) > 85,
+                  'bg-amber-10': parseInt(props.row.savings) > 70,
+                  'bg-blue-grey-13': parseInt(props.row.savings) < 40
+                }"
+              >
+                {{ parseInt(props.row.savings) }}%
+              </q-badge>
+            </div>
+          </q-td>
+
+          <q-td key="store" :props="props">
+            <q-badge color="primary" class="text-bold text-body1">
+              {{ props.row.storeID }}
+            </q-badge>
+          </q-td>
+          <q-td key="release" :props="props">
+            <q-badge color="grey-7" outline class="">
+              {{
+                new Date(props.row.releaseDate * 1000)
+                  .toUTCString()
+                  .slice(5, 16)
+              }}
+            </q-badge>
+          </q-td>
+          <q-td key="metacritic" :props="props">
+            <q-badge
+              class="text-body1 "
+              :class="{
+                'bg-positive': props.row.metacriticScore > 80,
+                'bg-negative': props.row.metacriticScore < 50
+              }"
+            >
+              {{ props.row.metacriticScore }}
+            </q-badge>
+          </q-td>
+        </q-tr>
+      </template>
     </q-table>
   </q-page>
 </template>
 
 <script>
 import { data } from "./tempVariables";
+import { columns } from "../bin/variables";
+import DialogWindow from "src/components/dialog-window.vue";
+import LeftFiltersMenu from "src/components/left-filters-menu.vue";
 
-const pageSize = 10;
+const pageSize = 20;
 const nextPage = 2;
 const lastPage = Math.ceil(data.length / pageSize);
 
@@ -229,36 +247,7 @@ export default {
       filtersVisible: false,
       nextPage,
       loading: false,
-      pagination: {
-        rowsPerPage: 0,
-        rowsNumber: data.length
-      },
-      columns: [
-        {
-          name: "index",
-          label: "#",
-          field: "index"
-        },
-        {
-          name: "title",
-          required: true,
-          label: "Title",
-          align: "left",
-          field: "title",
-          sortable: true
-        },
-        {
-          name: "price",
-          align: "center",
-          label: "price",
-          field: "salePrice",
-          sortable: true
-        },
-        { name: "savings", label: "saving", field: "savings", sortable: true },
-        { name: "dealRating", label: "deal rating", field: "dealRating" },
-        { name: "release", label: "Release", field: "releaseDate" },
-        { name: "reviews", label: "reviews", field: "steamRatingText" }
-      ],
+      columns,
       filters: {
         title: "",
         exactMatch: false,
@@ -272,15 +261,24 @@ export default {
         onSale: false
       },
       oldCopy: {},
-      leftDrawerOpen: false
+      leftDrawerOpen: false,
+      card: {
+        visible: false,
+        data: {}
+      }
     };
+  },
+  components: {
+    DialogWindow,
+    LeftFiltersMenu
   },
   activated: function() {
     this.oldCopy = { ...this.filters };
+    this.nextPage = 1;
   },
   computed: {
     data() {
-      return data.slice(0, pageSize * (this.nextPage - 1));
+      return data.slice(0, pageSize * this.nextPage);
     },
     ratingValue() {
       return this.filters.rating > 40 ? `above ${this.filters.rating}%` : "any";
@@ -330,8 +328,11 @@ export default {
             ref.refresh();
             this.loading = false;
           });
-        }, 2500);
+        }, 1000);
       }
+    },
+    getHeaderImage(src) {
+      return src.replace("capsule_sm_120", "header");
     }
   }
 };
@@ -340,10 +341,13 @@ export default {
 .filter-title {
   color: #000;
 }
+.custom-wrap {
+  white-space: pre-line;
+}
 .table-class::v-deep {
   /* height or max-height is important */
-  min-height: 400px;
-  max-height: 75vh;
+  min-height: 320px;
+  max-height: calc(100vh - 110px);
   width: 100%;
 
   .q-table__top,
