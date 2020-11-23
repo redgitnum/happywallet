@@ -55,7 +55,7 @@
         />
         <q-btn flat round color="dark" icon="help_outline">
           <q-tooltip>
-            Filters out games with current retails price &lt;$29
+            Filters out games with current retails price &gt;$29
           </q-tooltip>
         </q-btn>
       </q-item>

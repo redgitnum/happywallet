@@ -1,14 +1,16 @@
 <template>
   <q-tr
+    ref="tableBody"
     :props="props"
-    @click="
-      card.visible = true;
-      card.data = props.row;
-      fetchCard();
-    "
+    @click="fetchCard(props.row)"
     class="cursor-pointer"
   >
-    <q-td key="title" :props="props" style="maxWidth: 300px" class="ellipsis">
+    <q-td
+      key="title"
+      :props="props"
+      :style="{ maxWidth: $q.screen.lt.md ? '260px' : '450px' }"
+      class="ellipsis"
+    >
       <q-img
         :src="props.row.thumb"
         style="maxHeight: 45px; max-width: 120px"
@@ -83,6 +85,8 @@
 </template>
 
 <script>
+import { Loading } from "quasar";
+
 export default {
   props: {
     props: Object,
@@ -90,12 +94,16 @@ export default {
     stores: [Object, Array]
   },
   methods: {
-    fetchCard() {
-      fetch(
-        `https://www.cheapshark.com/api/1.0/games?id=${this.card.data.gameID}`
-      )
+    async fetchCard(gameData) {
+      Loading.show();
+      fetch(`https://www.cheapshark.com/api/1.0/games?id=${gameData.gameID}`)
         .then(response => response.json())
-        .then(result => (this.card.details = result))
+        .then(details => {
+          this.card.data = gameData;
+          this.card.details = details;
+          this.card.visible = true;
+          Loading.hide();
+        })
         .catch(error => console.log("error", error));
     }
   }

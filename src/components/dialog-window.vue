@@ -14,6 +14,7 @@
           clickable
           text-color="white"
           size="xl"
+          @click="goToDeal(card.data.dealID)"
         >
           <q-avatar class="q-pl-sm">
             <img
@@ -31,7 +32,7 @@
             color="light-blue-14"
             floating
           >
-            75% Off
+            {{ parseInt(card.data.savings) }}% Off
           </q-badge>
           <q-badge
             class="text-strike q-pa-xs q-px-sm absolute-bottom-right"
@@ -64,10 +65,30 @@
                   .slice(12, 16)
               }}
             </div>
-            <q-item class="absolute-right">
+            <q-item class="absolute-right" v-if="card.details">
               <q-item-section>
-                <q-item-label>Cheapest ever: $4.99</q-item-label>
-                <q-item-label caption>on 12 Oct 2012</q-item-label>
+                <q-item-label
+                  >Cheapest ever: ${{
+                    card.details.cheapestPriceEver.price
+                  }}</q-item-label
+                >
+                <q-item-label
+                  v-if="
+                    card.details.cheapestPriceEver.price !== card.data.salePrice
+                  "
+                  caption
+                  class="text-right"
+                >
+                  on
+                  {{
+                    new Date(card.details.cheapestPriceEver.date * 1000)
+                      .toUTCString()
+                      .slice(4, 16)
+                  }}
+                </q-item-label>
+                <q-item-label v-else caption class="text-right">
+                  right now
+                </q-item-label>
               </q-item-section>
             </q-item>
           </div>
@@ -76,105 +97,62 @@
       <q-separator />
       <q-card-section class="q-pt-none q-px-none">
         <q-list separator class="bg-grey-1">
-          <q-item-label header class="q-pt-sm">Other stores</q-item-label>
-          <q-item clickable v-ripple dense>
+          <q-item-label header class="q-pt-sm">All stores</q-item-label>
+          <q-item
+            clickable
+            v-ripple
+            dense
+            v-for="deal in card.details.deals"
+            :class="{
+              'bg-warning': Number(deal.price) < card.data.salePrice
+            }"
+            :key="deal.dealID"
+            @click="goToDeal(deal.dealID)"
+          >
             <q-item-section avatar>
               <q-img
-                style="maxWidth: 48px"
+                :style="{ maxWidth: $q.screen.lt.sm ? '32px' : '48px' }"
                 :src="
-                  `https://www.cheapshark.com/img/stores/logos/${card.data
-                    .storeID - 1}.png`
+                  `https://www.cheapshark.com/img/stores/logos/${deal.storeID -
+                    1}.png`
                 "
               />
             </q-item-section>
-            <q-item-section class="text-body1">Steam</q-item-section>
-            <q-separator vertical inset></q-separator>
-            <q-item-section avatar>
-              <q-chip
-                color="light-green-8"
-                square
-                text-color="white"
-                size="md"
-                class="glossy q-px-md"
-                >${{ card.data.salePrice }}
-              </q-chip>
-            </q-item-section>
-          </q-item>
-          <q-item clickable v-ripple dense>
-            <q-item-section avatar>
-              <q-img
-                style="maxWidth: 48px"
-                :src="
-                  `https://www.cheapshark.com/img/stores/logos/${card.data.storeID}.png`
-                "
-              />
-            </q-item-section>
-            <q-item-section class="text-body1">Steam</q-item-section>
-            <q-separator vertical inset></q-separator>
+            <q-item-section :class="{ 'text-body1': $q.screen.gt.xs }">{{
+              stores[deal.storeID - 1].storeName
+            }}</q-item-section>
+            <q-separator v-if="$q.screen.gt.xs" vertical inset></q-separator>
             <q-item-section side>
               <div>
                 <q-chip
+                  v-if="deal.price !== deal.retailPrice"
                   color="grey-8"
                   outline
                   text-color="white"
                   square
                   size="md"
-                  class="q-px-md q-mr-none text-strike"
-                  >${{ card.data.normalPrice }}
+                  class="q-mr-none text-strike"
+                  :class="{ 'q-px-xs': $q.screen.lt.sm }"
+                  >${{ deal.retailPrice }}
                 </q-chip>
                 <q-chip
-                  color="light-green-8"
                   square
-                  text-color="white"
                   size="md"
-                  class="glossy q-px-md"
-                  >${{ card.data.salePrice }}
+                  class="glossy"
+                  :class="{
+                    'q-px-xs': $q.screen.lt.sm,
+                    'bg-light-green-8': deal.price !== deal.retailPrice,
+                    'text-white': deal.price !== deal.retailPrice
+                  }"
+                  >${{ deal.price }}
+                  <q-badge
+                    v-if="Number(deal.price) < card.data.salePrice"
+                    class="bg-orange-10 glossy absolute"
+                    style="top: -10px; right: -8px"
+                    >Cheaper!</q-badge
+                  >
                 </q-chip>
               </div>
-            </q-item-section>
-          </q-item>
-          <q-item clickable v-ripple dense>
-            <q-item-section avatar>
-              <q-img
-                style="maxWidth: 48px"
-                :src="
-                  `https://www.cheapshark.com/img/stores/logos/${card.data.storeID}.png`
-                "
-              />
-            </q-item-section>
-            <q-item-section class="text-body1">Steam</q-item-section>
-            <q-separator vertical inset></q-separator>
-            <q-item-section avatar>
-              <q-chip
-                color="light-green-8"
-                square
-                text-color="white"
-                size="md"
-                class="glossy q-px-md"
-                >${{ card.data.salePrice }}
-              </q-chip>
-            </q-item-section>
-          </q-item>
-          <q-item clickable v-ripple dense>
-            <q-item-section avatar>
-              <q-img
-                style="maxWidth: 48px"
-                :src="
-                  `https://www.cheapshark.com/img/stores/logos/${card.data.storeID}.png`
-                "
-              />
-            </q-item-section>
-            <q-item-section class="text-body1">Steam</q-item-section>
-            <q-separator vertical inset></q-separator>
-            <q-item-section avatar>
-              <q-chip
-                color="light-green-8"
-                square
-                text-color="white"
-                size="md"
-                class="glossy q-px-md"
-                >${{ card.data.salePrice }}
-              </q-chip>
             </q-item-section>
           </q-item>
         </q-list>
@@ -187,6 +165,7 @@
           color="primary"
           label="Go to Deal"
           class="glossy q-px-lg q-py-xs"
+          @click="goToDeal(card.data.dealID)"
         />
       </q-card-actions>
     </q-card>
@@ -196,11 +175,20 @@
 <script>
 export default {
   props: {
-    card: Object
+    card: Object,
+    stores: [Object, Array]
+  },
+  computed: {
+    cardDetails() {
+      return card.details;
+    }
   },
   methods: {
     getHeaderImage(src) {
       return src.replace("capsule_sm_120", "header");
+    },
+    goToDeal(href) {
+      window.open(`https://www.cheapshark.com/redirect?dealID=${href}`);
     }
   }
 };

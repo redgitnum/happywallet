@@ -56,7 +56,7 @@
             />
             <q-icon name="help_outline" style="cursor: help;">
               <q-tooltip>
-                Filters out games with current retails price &lt;$29
+                Filters out games with current retails price &gt;$29
               </q-tooltip>
             </q-icon>
             <q-checkbox

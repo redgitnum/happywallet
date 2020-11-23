@@ -5,7 +5,7 @@
     style="height: 100vh"
     class="rounded-borders bg-lines"
   >
-    <q-header class="bg-black">
+    <q-header class="bg-light-green-10">
       <q-toolbar>
         <q-toolbar-title class="text-center text-h5">
           HappyWallet

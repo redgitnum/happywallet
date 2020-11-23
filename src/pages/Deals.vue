@@ -14,10 +14,11 @@
         :checkFilters="checkFilters"
       />
     </q-drawer>
-    <dialog-window :card="card" />
+    <dialog-window :card="card" :stores="stores" />
     <q-table
+      ref="mainTable"
       class="table-class"
-      title="Treats"
+      title="Deals"
       :data="data"
       :columns="columns"
       :visible-columns="[
@@ -29,11 +30,13 @@
       :loading="loading"
       row-key="index"
       virtual-scroll
+      :virtual-scroll-slice-size="20"
       :virtual-scroll-item-size="48"
       :virtual-scroll-sticky-size-start="48"
       :rows-per-page-options="[0]"
       @virtual-scroll="onScroll"
       dense
+      no-data-label="I didn't find anything for you"
     >
       <template v-slot:top>
         <top-filters-menu
@@ -55,7 +58,6 @@
 </template>
 
 <script>
-import { data } from "./tempVariables";
 import { columns, stores } from "../bin/variables";
 import DialogWindow from "src/components/dialog-window.vue";
 import LeftFiltersMenu from "src/components/left-filters-menu.vue";
@@ -64,7 +66,6 @@ import TableBodyContent from "src/components/table-body-content.vue";
 
 const pageSize = 60;
 const nextPage = 2;
-const lastPage = Math.ceil(data.length / pageSize);
 
 export default {
   name: "Deals",
@@ -74,14 +75,14 @@ export default {
       filtersVisible: false,
       nextPage,
       stores,
-      loading: false,
+      loading: true,
       columns,
       filters: {
         title: "",
         exactMatch: false,
         price: {
-          min: 10,
-          max: 35
+          min: 0,
+          max: 50
         },
         rating: 40,
         aaaOnly: false,
@@ -104,34 +105,76 @@ export default {
   },
   beforeMount: async function() {
     this.rawData = await this.fetchData();
+    this.loading = false;
   },
   activated: function() {
     this.oldCopy = { ...this.filters };
-    this.nextPage = 1;
+    this.$refs.mainTable.resetVirtualScroll();
   },
   computed: {
     data() {
-      return this.rawData.slice(0, pageSize * this.nextPage);
+      return this.rawData;
     },
     ratingValue() {
       return this.filters.rating > 40 ? `above ${this.filters.rating}%` : "any";
     },
     filterPrice() {
       return this.filters.price.max > 49 ? `any` : `$${this.filters.price.max}`;
+    },
+    filtersParams() {
+      let parsedFilters = [];
+      if (this.filters.title) {
+        parsedFilters.push(
+          `&title=${this.filters.title
+            .trim()
+            .split(" ")
+            .join("%20")}`
+        );
+      }
+      if (this.filters.exactMatch) {
+        parsedFilters.push(`&exact=1`);
+      }
+      if (this.filters.rating > 40) {
+        parsedFilters.push(`&steamRating=${this.filters.rating}`);
+      }
+      if (this.filters.price.min > 0) {
+        parsedFilters.push(`&lowerPrice=${this.filters.price.min}`);
+      }
+      if (this.filters.price.max < 50) {
+        parsedFilters.push(`&upperPrice=${this.filters.price.max}`);
+      }
+      if (this.filters.aaaOnly) {
+        parsedFilters.push(`&AAA=1`);
+      }
+      if (this.filters.steamworks) {
+        parsedFilters.push(`&steamworks=1`);
+      }
+      if (this.filters.onSale) {
+        parsedFilters.push(`&onSale=1`);
+      }
+      return parsedFilters.join("");
     }
   },
   methods: {
     async fetchData() {
-      return await fetch(
+      this.loading = true;
+      let result = await fetch(
         `https://www.cheapshark.com/api/1.0/deals?pageNumber=${this.nextPage -
-          2}`
+          2}${this.filtersParams}`
       )
-        .then(response => response.json())
+        .then(response => {
+          this.$refs.mainTable.$refs.virtScroll.scrollTo(0);
+          return response.json();
+        })
         .catch(error => console.log("error", error));
+
+      this.loading = false;
+      return result;
     },
 
-    applyFilters() {
+    async applyFilters() {
       this.oldCopy = { ...this.filters };
+      this.rawData = await this.fetchData();
       this.$q.notify({
         message: "Filters updated!",
         type: "positive",
@@ -157,14 +200,12 @@ export default {
     async onScroll({ to, ref }) {
       const lastIndex = this.data.length - 1;
 
-      if (this.loading !== true && to === lastIndex) {
+      if (this.loading !== true && lastIndex > 58 && to === lastIndex) {
         this.loading = true;
-
         this.nextPage++;
         let nextData = await this.fetchData();
         this.rawData.push(...nextData);
         this.$nextTick(() => {
-          ref.refresh();
           this.loading = false;
         });
       }
@@ -175,7 +216,6 @@ export default {
 <style lang="scss" scoped>
 .table-class::v-deep {
   /* height or max-height is important */
-  min-height: 320px;
   max-height: calc(100vh - 110px);
   width: 100%;
 
@@ -192,7 +232,7 @@ export default {
   /* this will be the loading indicator */
   thead tr:last-child th {
     /* height of all previous header rows */
-    top: 48px;
+    top: 28px;
   }
   thead tr:first-child th {
     top: 0;
