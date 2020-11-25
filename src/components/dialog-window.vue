@@ -184,6 +184,7 @@ export default {
     }
   },
   methods: {
+    //only works when thumbnails are from steam
     getHeaderImage(src) {
       return src.replace("capsule_sm_120", "header");
     },
@@ -193,5 +194,3 @@ export default {
   }
 };
 </script>
-
-<style></style>

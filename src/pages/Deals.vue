@@ -65,7 +65,6 @@ import TopFiltersMenu from "src/components/top-filters-menu.vue";
 import TableBodyContent from "src/components/table-body-content.vue";
 
 const pageSize = 60;
-const nextPage = 2;
 
 export default {
   name: "Deals",
@@ -73,7 +72,7 @@ export default {
     return {
       rawData: [],
       filtersVisible: false,
-      nextPage,
+      nextPage: 2,
       stores,
       loading: true,
       columns,
@@ -103,7 +102,7 @@ export default {
     TopFiltersMenu,
     TableBodyContent
   },
-  beforeMount: async function() {
+  mounted: async function() {
     this.rawData = await this.fetchData();
     this.loading = false;
   },
@@ -122,37 +121,15 @@ export default {
       return this.filters.price.max > 49 ? `any` : `$${this.filters.price.max}`;
     },
     filtersParams() {
-      let parsedFilters = [];
-      if (this.filters.title) {
-        parsedFilters.push(
-          `&title=${this.filters.title
-            .trim()
-            .split(" ")
-            .join("%20")}`
-        );
-      }
-      if (this.filters.exactMatch) {
-        parsedFilters.push(`&exact=1`);
-      }
-      if (this.filters.rating > 40) {
-        parsedFilters.push(`&steamRating=${this.filters.rating}`);
-      }
-      if (this.filters.price.min > 0) {
-        parsedFilters.push(`&lowerPrice=${this.filters.price.min}`);
-      }
-      if (this.filters.price.max < 50) {
-        parsedFilters.push(`&upperPrice=${this.filters.price.max}`);
-      }
-      if (this.filters.aaaOnly) {
-        parsedFilters.push(`&AAA=1`);
-      }
-      if (this.filters.steamworks) {
-        parsedFilters.push(`&steamworks=1`);
-      }
-      if (this.filters.onSale) {
-        parsedFilters.push(`&onSale=1`);
-      }
-      return parsedFilters.join("");
+      return `&title=${this.filters.title.trim()}&exact=${
+        this.filters.exactMatch ? 1 : 0
+      }&steamRating=${
+        this.filters.rating > 40 ? this.filters.rating : 0
+      }&lowerPrice=${this.filters.price.min}&upperPrice=${
+        this.filters.price.max
+      }&AAA=${this.filters.aaaOnly ? 1 : 0}&steamworks=${
+        this.filters.steamworks ? 1 : 0
+      }&onSale=${this.filters.onSale ? 1 : 0}`;
     }
   },
   methods: {
@@ -174,6 +151,7 @@ export default {
 
     async applyFilters() {
       this.oldCopy = { ...this.filters };
+      this.nextPage = 2;
       this.rawData = await this.fetchData();
       this.$q.notify({
         message: "Filters updated!",
